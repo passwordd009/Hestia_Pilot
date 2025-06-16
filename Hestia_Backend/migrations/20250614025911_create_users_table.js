@@ -9,7 +9,11 @@ exports.up = function(knex) {
         table.string('last_name');
         table.string('email').unique().notNullable();
         table.string('password').notNullable();
+        table.string('qr_code').unique();
+        table.text('qr_url');
         table.timestamps(true, true);
+        table.string('reset_token');
+        table.timestamp('reset_token_expires');
       });
 };
 

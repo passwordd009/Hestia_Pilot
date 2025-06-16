@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const UserModel = require('../models/userModel');
 require('dotenv').config();
 
@@ -46,7 +47,8 @@ const logout = (req, res) => {
   
   const login = async (req, res) => {
     const { email, password } = req.body;
-  
+
+  try{
     const existingUser = await UserModel.findByEmail(email);
     if (!existingUser) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -59,6 +61,31 @@ const logout = (req, res) => {
   
     const token = generateToken(existingUser.id);
     res.json({ token });
-  };
+  } catch {
+    console.error('Login error:', err);  // helpful for debugging
+    res.status(500).json({ message: 'Something went wrong during login' });
+  }
+  }
 
-module.exports = { register, login, logout};
+  const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    const user = await UserModel.findByEmail(email);
+  
+    if (!user) return res.status(404).json({ message: 'User not found' });
+  
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  
+    await UserModel.saveResetToken(user.id, hashedToken, expires);
+  
+    // In a real app, send an email instead
+    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+    console.log(`🔗 Reset URL: ${resetUrl}`);
+  
+    res.json({ message: 'Reset link sent (check console)' });
+  }
+
+
+
+module.exports = { register, login, logout, forgotPassword};
